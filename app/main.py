@@ -15,6 +15,7 @@ from fastapi import Depends
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from passlib.context import CryptContext
 from enum import Enum
+from Orders import Seller, Food, FoodList, Order,SearchInput, PreOrderDetails,PriceDetails,QuantityDetails,LocationDetails, MoreItems,Variation, OrderStatus,ItemOrdered,OrderResult, TotalPriceDetails
 
 
 app = FastAPI()
@@ -159,7 +160,6 @@ def get_user(username: str):
           if currentUserEmail == username:
                return user
 
-
 @app.post("/signup")
 def signUp(user: User):
      # cursor.execute(""" INSERT INTO public."Users"
@@ -178,10 +178,6 @@ def signUp(user: User):
           signedUpusers.append(newUpdatedUser)
      return { "id": 10554, "name": user.name, "phone": user.phone, "email": user.email, "token": token.access_token }
 
-# @app.get("/items/")
-# async def read_items(token: Annotated[str, Depends(oauth2_scheme)]):
-#      return {"token": token}
-
 @app.post("/sign_out")
 async def signOut(currentUser: Annotated[User, Depends(get_current_user)]):
      if currentUser is not None:
@@ -191,89 +187,13 @@ async def signOut(currentUser: Annotated[User, Depends(get_current_user)]):
                     return { "data": "successfully signed out"}
           raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=ErrorCodes.USER_NOT_FOUND.value)
 
-class Item(BaseModel):
-     id: int
-     quantity: int
-
-class Order(BaseModel):
-     sellerId: int
-     message: str
-     items: List[Item]
-
         
 @app.post("/complete_order")
 async def completeOrder(currentUser: Annotated[User, Depends(get_current_user)], order: Order):
    print(order)
    return {"data": "completed"}
 
-class PreOrderDetails(BaseModel):
-    availableFrom: str
-    availableTo: str
-    preOrderUnTill: str
 
-class Variation(BaseModel):
-     id: int
-     name: str
-     shortDisplayName: str
-     price: str
-     currency: str
-     isDefault: bool
-
-class PriceDetails(BaseModel):
-    variations: List[Variation]
-
-class MoreItems(BaseModel):
-     id: int
-     title: str
-     price: str
-     currency: str
-     image: Optional[str]
-
-class LocationDetails(BaseModel):
-     address: str
-     latitude: float
-     longitude: float
-
-class Seller(BaseModel):
-        id: int
-        name: str
-        totalNumbersSold: str
-        phone: str
-        profileImage: Optional[str]
-        moreItems: list[MoreItems]
-        location: LocationDetails
-
-class QuantityDetails(BaseModel):
-     minimumQuantity: int
-     quantityAvailable: int
-
-class  PreOrderDetails(BaseModel):   
-     availableFrom: str
-     availableTo: str
-     preOrderUnTill: str
-
-class Food(BaseModel):
-        id: int
-        title: str
-        imageUrl: str
-        distance: str
-        seller: Seller
-        starRating: str
-        isVeg: bool
-        # imageDownloaded: Data?
-        preOrderDetails: Optional[PreOrderDetails]
-        priceDetails: PriceDetails
-        quantityDetails: QuantityDetails
-        services: list[str]
-        isBookMarked: bool
-
-class FoodList(BaseModel):
-     foods: List[Food]
-     totalItems: int
-     currentPage: int
-
-class SearchInput(BaseModel):
-     searchTerm: str
 
 @app.post("/foods_listing")
 async def foodListing(searchTerm: SearchInput):
@@ -368,6 +288,23 @@ async def sellerReview(id: int):
           }],
           "totalReview": 2
      }
+
+@app.post("/orders")
+async def loadOrders(searchTerm: SearchInput):
+     moreItems = [MoreItems(id=12, title="hike", price="1200", currency="CAD", image="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSYiV3KUdtKlifN1R9ZDm1YTb6P0ZR7tm010A&s"), MoreItems(id=14, title="Running Every day", price="120", currency="CAD", image="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSYiV3KUdtKlifN1R9ZDm1YTb6P0ZR7tm010A&s")]
+
+     variations = [Variation(id=1221,name="Weekly", shortDisplayName="W",price="120",currency="CAD", isDefault=True), Variation(id=1221,name="Monthly", shortDisplayName="W",price="120",currency="CAD", isDefault=True)]
+     priceDetails = PriceDetails(variations=variations)
+     seller = Seller(id=1245,name="PC",totalNumbersSold="100", phone="423434234", profileImage="https://static.wikia.nocookie.net/bollywood/images/0/04/Shah_Rukh_Khan.jpg/revision/latest?cb=20220122154417",moreItems=moreItems,location=LocationDetails(address="Tap and find",latitude=43.712664, longitude=-79.395977))
+
+     orderStatus = OrderStatus(statusCode=1,date="",orderPlacedDate="")
+     order1 = Order(id=1, status=orderStatus,seller=seller,itemsOrdered=[ItemOrdered(id=2,title="",quantity=2,priceDetails=priceDetails)], totalPriceDetails=priceDetails) 
+     order2 = Order(id=2, status=orderStatus,seller=seller,itemsOrdered=[ItemOrdered(id=2,title="",quantity=2,priceDetails=priceDetails)], totalPriceDetails=priceDetails) 
+
+     if not searchTerm.searchTerm:
+            return OrderResult(orders=[order1], totalCount=1)
+     else:
+          return OrderResult(orders=[order1, order2], totalCount=2)
 
 @app.get("/load_filters")
 async def load_filters():
